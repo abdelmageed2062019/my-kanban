@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Navbar } from "@/components/Navbar";
+import Board from "@/components/Board";
 
 export default function Home() {
   const [search, setSearch] = React.useState("");
@@ -14,7 +15,9 @@ export default function Home() {
         searchValue={search}
         onSearchChange={setSearch}
       />
-      <main className="px-6 py-6">Todo content here</main>
+      <main className="px-6 py-6">
+        <Board />
+      </main>
     </div>
   );
 }

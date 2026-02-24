@@ -1,0 +1,32 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Design homepage",
+      "description": "Include hero section",
+      "column": "backlog"
+    }
+  ],
+  "columns": [
+    {
+      "id": 1,
+      "name": "Backlog",
+      "status": "backlog"
+    },
+    {
+      "id": 2,
+      "name": "To Do",
+      "status": "todo"
+    },
+    {
+      "id": 3,
+      "name": "In Progress",
+      "status": "inprogress"
+    },
+    {
+      "id": 4,
+      "name": "Done",
+      "status": "done"
+    }
+  ]
+}

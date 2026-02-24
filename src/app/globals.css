@@ -10,6 +10,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-priority-high: hsl(0 72% 45%);
+  --color-priority-high-bg: hsl(0 85% 95%);
+  --color-priority-medium: hsl(38 92% 40%);
+  --color-priority-medium-bg: hsl(48 96% 92%);
+  --color-priority-low: hsl(142 72% 32%);
+  --color-priority-low-bg: hsl(142 60% 92%);
 }
 
 @media (prefers-color-scheme: dark) {
