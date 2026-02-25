@@ -5,6 +5,7 @@ import { Box } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { KanbanColumn } from "./Column";
 import { Column, Status } from "@/types/task";
+import { toast } from "react-toastify";
 
 type ApiColumn = {
      id: number;
@@ -34,7 +35,7 @@ const statusDotColor: Record<Status, string> = {
      done: "bg-emerald-500",
 };
 
-const Board = () => {
+const Board = ({ searchQuery }: { searchQuery: string }) => {
      const queryClient = useQueryClient();
 
      const {
@@ -141,11 +142,15 @@ const Board = () => {
                if (context.previousTarget) {
                     queryClient.setQueryData(context.targetKey, context.previousTarget);
                }
+               toast.error("Failed to move task");
           },
           onSettled: (_data, _error, variables) => {
                if (!variables) return;
                queryClient.invalidateQueries({ queryKey: ["tasks", variables.fromStatus] });
                queryClient.invalidateQueries({ queryKey: ["tasks", variables.toStatus] });
+          },
+          onSuccess: () => {
+               toast.success("Task moved");
           },
      });
 
@@ -197,6 +202,7 @@ const Board = () => {
                          <KanbanColumn
                               key={column.id}
                               column={column}
+                              searchQuery={searchQuery}
                               onDragStart={onDragStart}
                               onDrop={onDrop}
                               onDragOver={onDragOver}

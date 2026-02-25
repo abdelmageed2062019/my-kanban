@@ -3,9 +3,11 @@
 import * as React from "react";
 import { Navbar } from "@/components/Navbar";
 import Board from "@/components/Board";
+import useDebouncedValue from "@/hooks/useDebouncedValue";
 
 export default function Home() {
   const [search, setSearch] = React.useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -16,7 +18,7 @@ export default function Home() {
         onSearchChange={setSearch}
       />
       <main className="px-6 py-6">
-        <Board />
+        <Board searchQuery={debouncedSearch} />
       </main>
     </div>
   );

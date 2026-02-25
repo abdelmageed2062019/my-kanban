@@ -6,6 +6,7 @@ import { Badge, Box, Typography } from "@mui/material";
 import { Column, Priority, Status, Task } from "../types/task";
 import TaskCard from "./TaskCard";
 import AddTaskForm from "./AddTaskForm";
+import { toast } from "react-toastify";
 
 type ApiTask = {
      id: string | number;
@@ -22,6 +23,7 @@ type ApiTaskPage = {
 
 interface ColumnProps {
      column: Column;
+     searchQuery: string;
      onDragStart: (e: React.DragEvent, taskId: string, status: Status) => void;
      onDrop: (e: React.DragEvent, status: Status) => void;
      onDragOver: (e: React.DragEvent) => void;
@@ -30,7 +32,7 @@ interface ColumnProps {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const TASK_PAGE_SIZE = 10;
 
-export const KanbanColumn = ({ column, onDragStart, onDrop, onDragOver }: ColumnProps) => {
+export const KanbanColumn = ({ column, searchQuery, onDragStart, onDrop, onDragOver }: ColumnProps) => {
      const queryClient = useQueryClient();
      const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -153,6 +155,7 @@ export const KanbanColumn = ({ column, onDragStart, onDrop, onDragOver }: Column
                          return { ...oldData, pages };
                     }
                );
+               toast.error("Failed to add task");
           },
           onSuccess: (data, _payload, context) => {
                if (!context?.tempId) return;
@@ -169,6 +172,7 @@ export const KanbanColumn = ({ column, onDragStart, onDrop, onDragOver }: Column
                          return { ...oldData, pages };
                     }
                );
+               toast.success("Task added");
           },
           onSettled: () => {
                queryClient.invalidateQueries({ queryKey: ["tasks", column.id] });
@@ -192,6 +196,15 @@ export const KanbanColumn = ({ column, onDragStart, onDrop, onDragOver }: Column
                }));
           }) ?? [];
 
+     const normalizedQuery = searchQuery.trim().toLowerCase();
+     const visibleTasks = normalizedQuery
+          ? tasks.filter((task) => {
+               const title = task.title.toLowerCase();
+               const description = task.description.toLowerCase();
+               return title.includes(normalizedQuery) || description.includes(normalizedQuery);
+          })
+          : tasks;
+
      return (
           <Box
                onDrop={(e) => onDrop(e, column.id)}
@@ -204,7 +217,7 @@ export const KanbanColumn = ({ column, onDragStart, onDrop, onDragOver }: Column
                          {column.title}
                     </Typography>
                     <Typography sx={{ fontSize: "12px", fontWeight: 500, color: "#64748B" }}>
-                         {tasks.length}
+                         {visibleTasks.length}
                     </Typography>
                </Box>
                <Box className="flex flex-1 flex-col gap-2.5">
@@ -218,7 +231,7 @@ export const KanbanColumn = ({ column, onDragStart, onDrop, onDragOver }: Column
                               Failed to load tasks.
                          </Typography>
                     )}
-                    {tasks.map((task) => (
+                    {visibleTasks.map((task) => (
                          <TaskCard key={task.id} task={task} onDragStart={onDragStart} />
                     ))}
                     <div ref={sentinelRef} />

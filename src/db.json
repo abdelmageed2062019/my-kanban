@@ -4,14 +4,14 @@
       "id": "1",
       "title": "Design homepage",
       "description": "Include hero section",
-      "column": "inprogress"
+      "column": "todo"
     },
     {
       "id": "f72a",
       "title": "test",
       "description": "test",
       "priority": "HIGH",
-      "column": "inprogress"
+      "column": "todo"
     },
     {
       "id": "01ce",
@@ -19,6 +19,13 @@
       "description": "ad",
       "priority": "MEDIUM",
       "column": "done"
+    },
+    {
+      "id": "198c",
+      "title": "admin",
+      "description": "",
+      "priority": "MEDIUM",
+      "column": "inprogress"
     }
   ],
   "columns": [
