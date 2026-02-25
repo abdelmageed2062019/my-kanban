@@ -1,30 +1,44 @@
 {
   "tasks": [
     {
-      "id": 1,
+      "id": "1",
       "title": "Design homepage",
       "description": "Include hero section",
-      "column": "backlog"
+      "column": "inprogress"
+    },
+    {
+      "id": "f72a",
+      "title": "test",
+      "description": "test",
+      "priority": "HIGH",
+      "column": "inprogress"
+    },
+    {
+      "id": "01ce",
+      "title": "admin",
+      "description": "ad",
+      "priority": "MEDIUM",
+      "column": "done"
     }
   ],
   "columns": [
     {
-      "id": 1,
+      "id": "1",
       "name": "Backlog",
       "status": "backlog"
     },
     {
-      "id": 2,
+      "id": "2",
       "name": "To Do",
       "status": "todo"
     },
     {
-      "id": 3,
+      "id": "3",
       "name": "In Progress",
       "status": "inprogress"
     },
     {
-      "id": 4,
+      "id": "4",
       "name": "Done",
       "status": "done"
     }

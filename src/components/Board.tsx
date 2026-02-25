@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import { Box } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { KanbanColumn } from "./Column";
-import useTaskStore from "@/store/useTaskStore";
-import { Column, Priority, Status, Task } from "@/types/task";
+import { Column, Status } from "@/types/task";
 
 type ApiColumn = {
      id: number;
@@ -14,11 +13,16 @@ type ApiColumn = {
 };
 
 type ApiTask = {
-     id: number;
+     id: string | number;
      title: string;
      description: string;
      column: Status;
-     priority?: Priority;
+     priority?: string;
+};
+
+type ApiTaskPage = {
+     items: ApiTask[];
+     total: number;
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -31,10 +35,7 @@ const statusDotColor: Record<Status, string> = {
 };
 
 const Board = () => {
-     const tasks = useTaskStore((state) => state.tasks);
-     const setTasks = useTaskStore((state) => state.setTasks);
-     const addTask = useTaskStore((state) => state.addTask);
-     const moveTask = useTaskStore((state) => state.moveTask);
+     const queryClient = useQueryClient();
 
      const {
           data: columnData,
@@ -51,32 +52,102 @@ const Board = () => {
           },
      });
 
-     const {
-          data: taskData,
-          isLoading: tasksLoading,
-          isError: tasksError,
-     } = useQuery({
-          queryKey: ["tasks"],
-          queryFn: async (): Promise<ApiTask[]> => {
-               const response = await fetch(`${API_BASE_URL}/tasks`);
+     const updateTaskMutation = useMutation({
+          mutationFn: async (payload: { taskId: string; fromStatus: Status; toStatus: Status }) => {
+               const response = await fetch(
+                    `${API_BASE_URL}/tasks/${encodeURIComponent(payload.taskId)}`,
+                    {
+                         method: "PATCH",
+                         headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({ column: payload.toStatus }),
+                    }
+               );
                if (!response.ok) {
-                    throw new Error("Failed to fetch tasks");
+                    throw new Error("Failed to update task");
                }
-               return response.json();
+               return response.json() as Promise<ApiTask>;
+          },
+          onMutate: async (payload: {
+               taskId: string;
+               fromStatus: Status;
+               toStatus: Status;
+          }) => {
+               const sourceKey = ["tasks", payload.fromStatus];
+               const targetKey = ["tasks", payload.toStatus];
+
+               await queryClient.cancelQueries({ queryKey: sourceKey });
+               await queryClient.cancelQueries({ queryKey: targetKey });
+
+               const previousSource =
+                    queryClient.getQueryData<{ pages: ApiTaskPage[]; pageParams: unknown[] }>(
+                         sourceKey
+                    );
+               const previousTarget =
+                    queryClient.getQueryData<{ pages: ApiTaskPage[]; pageParams: unknown[] }>(
+                         targetKey
+                    );
+
+               let movedTask: ApiTask | undefined;
+               if (previousSource) {
+                    let removed = false;
+                    const pages = previousSource.pages.map((page) => {
+                         const items = page.items.filter((item) => {
+                              if (!removed && String(item.id) === payload.taskId) {
+                                   movedTask = item;
+                                   removed = true;
+                                   return false;
+                              }
+                              return true;
+                         });
+                         const total = removed ? Math.max(page.total - 1, 0) : page.total;
+                         return { ...page, items, total };
+                    });
+                    queryClient.setQueryData(sourceKey, { ...previousSource, pages });
+               }
+
+               if (movedTask) {
+                    const updatedTask: ApiTask = {
+                         id: movedTask.id,
+                         title: movedTask.title,
+                         description: movedTask.description,
+                         priority: movedTask.priority,
+                         column: payload.toStatus,
+                    };
+                    queryClient.setQueryData(
+                         targetKey,
+                         (oldData: { pages: ApiTaskPage[]; pageParams: unknown[] } | undefined) => {
+                              if (!oldData) {
+                                   return { pages: [{ items: [updatedTask], total: 1 }], pageParams: [1] };
+                              }
+                              const pages = [...oldData.pages];
+                              const firstPage = pages[0] ?? { items: [], total: 0 };
+                              pages[0] = {
+                                   ...firstPage,
+                                   items: [updatedTask, ...firstPage.items],
+                                   total: firstPage.total + 1,
+                              };
+                              return { ...oldData, pages };
+                         }
+                    );
+               }
+
+               return { previousSource, previousTarget, sourceKey, targetKey };
+          },
+          onError: (_error, _payload, context) => {
+               if (!context) return;
+               if (context.previousSource) {
+                    queryClient.setQueryData(context.sourceKey, context.previousSource);
+               }
+               if (context.previousTarget) {
+                    queryClient.setQueryData(context.targetKey, context.previousTarget);
+               }
+          },
+          onSettled: (_data, _error, variables) => {
+               if (!variables) return;
+               queryClient.invalidateQueries({ queryKey: ["tasks", variables.fromStatus] });
+               queryClient.invalidateQueries({ queryKey: ["tasks", variables.toStatus] });
           },
      });
-
-     React.useEffect(() => {
-          if (!taskData) return;
-          const normalizedTasks: Task[] = taskData.map((task) => ({
-               id: String(task.id),
-               title: task.title,
-               description: task.description ?? "",
-               priority: task.priority ?? "MEDIUM",
-               status: task.column,
-          }));
-          setTasks(normalizedTasks);
-     }, [taskData, setTasks]);
 
      const columns: Column[] =
           columnData?.map((column) => ({
@@ -85,7 +156,7 @@ const Board = () => {
                dotColor: statusDotColor[column.status] ?? "bg-slate-400",
           })) ?? [];
 
-     if (columnsLoading || tasksLoading) {
+     if (columnsLoading) {
           return (
                <Box sx={{ padding: 6, fontSize: "14px", color: "#4B5563" }}>
                     Loading board...
@@ -93,7 +164,7 @@ const Board = () => {
           );
      }
 
-     if (columnsError || tasksError) {
+     if (columnsError) {
           return (
                <Box sx={{ padding: 6, fontSize: "14px", color: "#F87171" }}>
                     Failed to load board.
@@ -101,14 +172,18 @@ const Board = () => {
           );
      }
 
-     const onDragStart = (e: React.DragEvent, taskId: string) => {
-          e.dataTransfer.setData("text/plain", taskId);
+     const onDragStart = (e: React.DragEvent, taskId: string, status: Status) => {
+          e.dataTransfer.setData("taskId", taskId);
+          e.dataTransfer.setData("fromStatus", status);
      };
 
      const onDrop = (e: React.DragEvent, status: Status) => {
-          const taskId = e.dataTransfer.getData("text/plain");
-          if (!taskId) return;
-          moveTask(taskId, status);
+          const taskId = e.dataTransfer.getData("taskId");
+          const fromStatus = e.dataTransfer.getData("fromStatus") as Status;
+          if (!taskId || !fromStatus) return;
+          if (taskId.startsWith("temp-")) return;
+          if (fromStatus === status) return;
+          updateTaskMutation.mutate({ taskId, fromStatus, toStatus: status });
      };
 
      const onDragOver = (e: React.DragEvent) => {
@@ -122,11 +197,9 @@ const Board = () => {
                          <KanbanColumn
                               key={column.id}
                               column={column}
-                              tasks={tasks.filter((task) => task.status === column.id)}
                               onDragStart={onDragStart}
                               onDrop={onDrop}
                               onDragOver={onDragOver}
-                              onAddTask={addTask}
                          />
                     ))}
                </Box>
@@ -134,4 +207,4 @@ const Board = () => {
      );
 };
 
-export default Board
+export default Board;
