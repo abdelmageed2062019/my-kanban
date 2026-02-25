@@ -26,6 +26,13 @@
       "description": "",
       "priority": "MEDIUM",
       "column": "inprogress"
+    },
+    {
+      "id": "012c",
+      "title": "see",
+      "description": "",
+      "priority": "HIGH",
+      "column": "backlog"
     }
   ],
   "columns": [

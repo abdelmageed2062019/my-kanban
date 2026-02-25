@@ -176,6 +176,7 @@ export const KanbanColumn = ({ column, searchQuery, onDragStart, onDrop, onDragO
           },
           onSettled: () => {
                queryClient.invalidateQueries({ queryKey: ["tasks", column.id] });
+               queryClient.invalidateQueries({ queryKey: ["taskCount"] });
           },
      });
 
