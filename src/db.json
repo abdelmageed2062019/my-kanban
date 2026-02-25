@@ -33,6 +33,13 @@
       "description": "",
       "priority": "HIGH",
       "column": "backlog"
+    },
+    {
+      "id": "cc3c",
+      "title": "admin",
+      "description": "",
+      "priority": "MEDIUM",
+      "column": "backlog"
     }
   ],
   "columns": [
